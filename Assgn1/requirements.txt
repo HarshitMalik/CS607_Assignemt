@@ -1,0 +1,5 @@
+boto3==1.15.1
+botocore==1.18.1
+pymongo==3.11.0
+pandas==1.1.2
+pdfplumber==0.5.23
