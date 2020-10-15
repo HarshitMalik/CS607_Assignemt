@@ -18,13 +18,14 @@
 #include <curand.h>
 #include <cublas_v2.h>
 
-#define DIM_N 1024 // Numbers of row and columns in matrix A
+#define DIM_N 4 // Numbers of row and columns in matrix A
 #define UPLO CUBLAS_FILL_MODE_LOWER // Upper triangular or lower triangular, other option: CUBLAS_FILL_MODE_UPPER
 #define DIAG CUBLAS_DIAG_NON_UNIT // Unit or Non unit diagonal, other option: CUBLAS_DIAG_NON_UNIT
 #define TRANSA CUBLAS_OP_N // Operation to be performed,  CUBLAS_OP_N => op(A) = A, CUBLAS_OP_T => op(A) = A**T, CUBLAS_OP_T => op(A) = A**H
 #define INCX 1 //INCX specifies the increment for the elements of X
 
-#define THREADS_PER_BLOCK 32
+#define THREADS_PER_BLOCK 16 // Threads to spin per block in GPU
+#define EPSILON 1e-2 // Precision for verifying actual and computed values
 
 // Fill the vector x with random initial values
 void init_vals(float *x, int N){
@@ -92,7 +93,7 @@ float cublas_ztmpv(const float *A, float *x){
   return ms;
 }
 
-
+//GPU Kernel method to compute single element of the resultant vector
 __global__ void gpu_kernel(const float *A, const float *x, float *res, int N, int op, int uplo){
   int i=blockIdx.x*blockDim.x+threadIdx.x;
   if(i<N) {
@@ -180,6 +181,17 @@ float cpu_ztmpv(const float *A, const float *x, float *res){
   return cpu_ms;
 }
 
+//Function to cross check computed vectors
+int check(const float *A, const float *B, const float *C, int N){
+  for(int i=0; i<N; i++){
+    if(abs(B[i] - A[i]) > EPSILON || abs(C[i] - A[i]) > EPSILON){
+      std::cout<<"Index : "<<i<<"  CPU : "<<A[i]<<"  GPU : "<<B[i]<<"  CuBLAS : "<<C[i]<<"\n";
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // Function to print matrix stored in column major order
 void print_mat(const float *M, int N){
   for(int i=0; i < N; i++) std::cout<<M[i]<<" ";
@@ -199,7 +211,7 @@ int main(){
   thrust::host_vector<float> h_x(DIM_N);
   thrust::host_vector<float> h_res_gpu(DIM_N);
   thrust::host_vector<float> h_res_cpu(DIM_N);
-  thrust::host_vector<float> h_res_cuBLAS(DIM_N);
+  thrust::host_vector<float> h_res_cublas(DIM_N);
 
   // Initialize values
   init_vals(thrust::raw_pointer_cast(d_x.data()), DIM_N);
@@ -218,27 +230,35 @@ int main(){
 
   //Perform operation on the CPU
   float cpu_time = cpu_ztmpv( thrust::raw_pointer_cast(h_A.data()), thrust::raw_pointer_cast(h_x.data()), thrust::raw_pointer_cast(h_res_cpu.data()) );
+  std::cout<<"Computation compeleted on CPU\n";
 
   //Perform operation on the GPU
   float gpu_time = gpu_ztmpv( thrust::raw_pointer_cast(d_A.data()), thrust::raw_pointer_cast(d_x.data()), thrust::raw_pointer_cast(d_res.data()) );
+  std::cout<<"Computation compeleted on GPU using custom routine\n";
 
   // Perform operation on the GPU using cuBLAS routine
   float cublas_time = cublas_ztmpv(thrust::raw_pointer_cast(d_B.data()), thrust::raw_pointer_cast(d_x.data()) );
+  std::cout<<"Computation compeleted on GPU using CuBLAS routine\n";
 
   // Copy result to host
-  h_res_cuBLAS = d_x;
+  h_res_cublas = d_x;
   h_res_gpu = d_res;
 
-  //print_mat(thrust::raw_pointer_cast(h_res_cpu.data()), DIM_N );
-  //print_mat(thrust::raw_pointer_cast(h_res_gpu.data()), DIM_N );
-  //print_mat(thrust::raw_pointer_cast(h_res_cuBLAS.data()), DIM_N );
+  int status = check(thrust::raw_pointer_cast(h_res_cpu.data()), thrust::raw_pointer_cast(h_res_gpu.data()), thrust::raw_pointer_cast(h_res_cublas.data()), DIM_N);
+
+  if(status == 0) std::cout<<"\nComputed vectors verified. No mismatch found.\n\n";
+  else std::cout<<"\nComputed vectors not verified. Mismatch found.\n\n";
 
   //Print Result
-  std::cout << "TEST COMPLETED \n"
+  std::cout << "Input Data Shape \n"
+            << "A : " << DIM_N <<" * " << DIM_N << "\n"
+            << "x : " << DIM_N <<" * 1\n"
+            << std::endl;
+  //Print Result
+  std::cout << "Perfermance \n"
             << "CPU Time : " << cpu_time << " ms\n"
             << "GPU Time : " << gpu_time << " ms\n"
-            << "CuBLAS Time : " << cublas_time << " ms"
+            << "CuBLAS Time : " << cublas_time << " ms\n"
             << std::endl;
-
   return 0;
 }
