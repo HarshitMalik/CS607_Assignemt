@@ -18,7 +18,7 @@
 #include <curand.h>
 #include <cublas_v2.h>
 
-#define DIM_N 4 // Numbers of row and columns in matrix A
+#define DIM_N 12288 // Numbers of row and columns in matrix A
 #define UPLO CUBLAS_FILL_MODE_LOWER // Upper triangular or lower triangular, other option: CUBLAS_FILL_MODE_UPPER
 #define DIAG CUBLAS_DIAG_NON_UNIT // Unit or Non unit diagonal, other option: CUBLAS_DIAG_NON_UNIT
 #define TRANSA CUBLAS_OP_N // Operation to be performed,  CUBLAS_OP_N => op(A) = A, CUBLAS_OP_T => op(A) = A**T, CUBLAS_OP_T => op(A) = A**H
