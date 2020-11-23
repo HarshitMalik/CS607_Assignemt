@@ -1,4 +1,5 @@
 import datetime
+import time
 import json
 import subprocess
 import os
@@ -33,7 +34,8 @@ def request_mine(PoS_name):
 
     get_chain_address = "{}/mine".format(address)
     response = requests.get(get_chain_address)
-    return response.text
+
+    return render_template('msg.html', title= "Minning Completed", message=response.text)
 
 @app.route('/PoS/<string:PoS_name>/chain')
 def get_pos_blockchain(PoS_name):
@@ -48,14 +50,27 @@ def get_pos_blockchain(PoS_name):
         chain = json.loads(response.content)
         return chain
 
-    return "Operation Failed"
+    return render_template('msg.html', title= "Operation failed", message=response.text)
 
+@app.route('/PoS/<string:PoS_name>/pending_tx')
+def get_pending_transactions(PoS_name):
+    global PoS_nodes
+    for node in PoS_nodes:
+        if node.name == PoS_name:
+            address = NODE_ADDRESS + str(node.port)
+
+    get_chain_address = "{}/pending_tx".format(address)
+    response = requests.get(get_chain_address)
+    if response.status_code == 200:
+        pending_tx = json.loads(response.content)
+        print(pending_tx)
+        return "Success"
+
+    return render_template('msg.html', title= "Operation failed", message=response.text)
 
 @app.route('/')
 def index():
-    #fetch_posts()
     return render_template('index.html', PoS_nodes= PoS_nodes, readable_time=timestamp_to_string)
-
 
 @app.route('/add_pos', methods=['POST'])
 def add_pos_terminal():
@@ -70,13 +85,14 @@ def add_pos_terminal():
     PoS_nodes.append(new_PoS_node)
 
     if available_port > 8000:
+        time.sleep(1)
         data = {
             "node_address": NODE_ADDRESS+"8000",
         }
 
         # Submit a transaction
         register_address = "{}/register_with".format(NODE_ADDRESS+str(available_port))
-        response = requests.post(new_tx_address, json=data, headers={'Content-type': 'application/json'})
+        response = requests.post(register_address , json=data, headers={'Content-type': 'application/json'})
         if response.status_code != 200:
             print("Error in registering new node -",response.text)
     available_port += 1
@@ -131,14 +147,10 @@ def purchase_card(PoS_name):
     # Submit a transaction
     new_tx_address = "{}/new_transaction".format(address)
     response = requests.post(new_tx_address, json=tx_object, headers={'Content-type': 'application/json'})
-    card_no = -1
     if response.status_code == 200:
         tx = json.loads(response.content)
-        card_no = int(tx["card"])
-    return str(card_no)
-
-    return redirect('/')
-
+        return render_template('msg.html', title= "Purchase Complete", message="New smart card purchased.\nYour card number is "+tx["card"]+".\nPlease rembember this for future transactions.")
+    return render_template('msg.html', title= "Operation Failed", message=response.text)
 
 @app.route('/PoS/<string:PoS_name>/balance', methods=['POST'])
 def check_balance(PoS_name):
@@ -161,12 +173,10 @@ def check_balance(PoS_name):
     new_tx_address = "{}/new_transaction".format(address)
 
     response = requests.post(new_tx_address, json=tx_object, headers={'Content-type': 'application/json'})
-    balance = -2
     if response.status_code == 200:
         tx = json.loads(response.content)
-        balance = int(tx["amount"])
-    return str(balance)
-    return redirect('/')
+        return render_template('msg.html', title= "Balance Fetched", message="Your balance is "+tx["amount"])
+    return render_template('msg.html', title= "Operation Failed", message=response.text)
 
 @app.route('/PoS/<string:PoS_name>/recharge', methods=['POST'])
 def recharge_card(PoS_name):
@@ -190,14 +200,10 @@ def recharge_card(PoS_name):
     new_tx_address = "{}/new_transaction".format(address)
 
     response = requests.post(new_tx_address, json=tx_object, headers={'Content-type': 'application/json'})
-    print("MEESAGE",response.text)
-    balance = -2
     if response.status_code == 200:
         tx = json.loads(response.content)
-        balance = int(tx["amount"])
-    return str(balance)
-
-    return redirect('/')
+        return render_template('msg.html', title= "Recharge successful", message="Your card recharged with "+tx["amount"])
+    return render_template('msg.html', title= "Operation Failed", message=response.text)
 
 @app.route('/PoS/<string:PoS_name>/buy', methods=['POST'])
 def buy_items(PoS_name):
@@ -213,7 +219,7 @@ def buy_items(PoS_name):
 
     tx_object = {
         'card': str(card_no),
-        'amount': dtr(amount),
+        'amount': str(amount),
         'type' : "buy"
     }
 
@@ -221,13 +227,10 @@ def buy_items(PoS_name):
     new_tx_address = "{}/new_transaction".format(address)
 
     response = requests.post(new_tx_address, json=tx_object, headers={'Content-type': 'application/json'})
-    balance = -2
     if response.status_code == 200:
         tx = json.loads(response.content)
-        balance = int(tx["amount"])
-    return str(balance)
-    return redirect('/')
-
+        return render_template('msg.html', title= "Items purchased", message="Your have purchased items of amount "+tx["amount"])
+    return render_template('msg.html', title= "Operation Failed", message=response.text)
 
 def timestamp_to_string(epoch_time):
     return datetime.datetime.fromtimestamp(epoch_time).strftime('%H:%M')

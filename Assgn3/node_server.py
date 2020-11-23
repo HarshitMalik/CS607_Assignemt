@@ -269,7 +269,7 @@ def consensus():
     current_len = len(blockchain.chain)
 
     for node in peers:
-        response = requests.get('{}chain'.format(node))
+        response = requests.get('{}/chain'.format(node))
         length = response.json()['length']
         chain = response.json()['chain']
         if length > current_len and blockchain.check_chain_validity(chain):
@@ -285,27 +285,30 @@ def consensus():
 
 def announce_new_block(block):
     for peer in peers:
-        url = "{}add_block".format(peer)
+        url = "{}/add_block".format(peer)
         headers = {'Content-Type': "application/json"}
         requests.post(url, data=json.dumps(block.__dict__, sort_keys=True), headers=headers)
 
 def main():
-  global PoS_name
-  global PoS_type
-  parser = argparse.ArgumentParser()
-  parser.add_argument("-p", "--port", help = "Port number")
-  parser.add_argument("-n", "--name", help = "PoS name")
-  parser.add_argument("-t", "--type", help = "PoS type: c-Cash_Card or r-Retail")
+    global PoS_name
+    global PoS_type
+    global peers
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--port", help = "Port number")
+    parser.add_argument("-n", "--name", help = "PoS name")
+    parser.add_argument("-t", "--type", help = "PoS type: c-Cash_Card or r-Retail")
 
-  args = parser.parse_args()
+    args = parser.parse_args()
 
-  PoS_name = args.name
-  if(args.type == 'c'):
-    PoS_type = 'Cash_Card'
-  else:
-    PoS_type = 'Retail'
-  app.run(debug=False, port=args.port)
-  return 0
+    PoS_name = args.name
+    if(args.type == 'c'):
+        PoS_type = 'Cash_Card'
+    else:
+        PoS_type = 'Retail'
+
+    peers.update(["http://127.0.0.1:"+str(args.port)])
+    app.run(debug=False, port=args.port)
+    return 0
 
 if __name__ == "__main__":
   main()
