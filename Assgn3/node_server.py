@@ -152,7 +152,7 @@ def new_transaction():
         for block in blockchain.chain:
             txs = block.transactions
             for tx in txs:
-                if card_no < int(tx["card"]):
+                if card_no <= int(tx["card"]):
                     card_no = int(tx["card"]) + 1
         tx_data["card"] = str(card_no)
 

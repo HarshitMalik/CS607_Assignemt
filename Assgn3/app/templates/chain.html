@@ -1,0 +1,66 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+<center>
+	<div class="row">
+    {% for block in chain["chain"] %}
+			<div class="column">
+				<div class="card">
+				<h4>Block</h4>
+				<h5>Index: {{block["index"]}}</h5>
+				<h5>timestamp: {{block["timestamp"]}}</h5>
+				<h5>nounce: {{block["nonce"]}}</h5>
+				<h5>hash: {{block["hash"]}}</h5>
+				<h5>previous_hash: {{block["previous_hash"]}}</h5>
+				<h5>transactions: {{block["transactions"]}}</h5>
+				</div>
+			</div>
+		{% endfor %}
+	</div>
+</center>
+
+
+	<center><a href="/">Go Home</a></center>
+
+	<br>
+
+
+	<style>
+		/* Float four columns side by side */
+		.column {
+		  width: 90%;
+		  padding: 0 5px;
+		}
+
+		/* Remove extra left and right margins, due to padding */
+		.row {margin: 5px 5px;}
+
+		/* Clear floats after the columns */
+		.row:after {
+		  content: "";
+		  display: table;
+		  clear: both;
+		}
+
+		/* Responsive columns */
+		@media screen and (max-width: 700px) {
+		  .column {
+		    width: 100%;
+		    display: block;
+		    margin-bottom: 20px;
+		  }
+		}
+
+		/* Style the counter cards */
+		.card {
+		  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+		  padding: 8px;
+		  text-align: center;
+		  background-color: #f1f1f1;
+		}
+		</<style media="screen">
+
+		</style>
+
+{% endblock %}

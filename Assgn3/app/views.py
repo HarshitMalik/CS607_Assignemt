@@ -48,7 +48,7 @@ def get_pos_blockchain(PoS_name):
     response = requests.get(get_chain_address)
     if response.status_code == 200:
         chain = json.loads(response.content)
-        return chain
+        return render_template('chain.html', chain = chain)
 
     return render_template('msg.html', title= "Operation failed", message=response.text)
 
@@ -63,8 +63,11 @@ def get_pending_transactions(PoS_name):
     response = requests.get(get_chain_address)
     if response.status_code == 200:
         pending_tx = json.loads(response.content)
-        print(pending_tx)
-        return "Success"
+        msg = "Pending transactions\n"
+        for tx in pending_tx:
+            msg += json.dumps(tx)
+            msg += '\n'
+        return render_template('msg.html', title= "Operation completed", message=msg)
 
     return render_template('msg.html', title= "Operation failed", message=response.text)
 
