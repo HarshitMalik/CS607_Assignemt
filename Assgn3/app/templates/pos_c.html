@@ -1,0 +1,37 @@
+<!-- extend base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+	<br>
+	<center>Welcoe to <h2>{{PoS_node.name}}</h2>
+	{% if PoS_node.type == 'c'%}
+		<h3>Cash Card PoS Counter</h3>
+	{% else %}
+		<h3>Retail PoS Counter</h3>
+	{% endif %}
+	<a href="/PoS/{{PoS_node.name}}/mine" target="_blank"><button>Request to mine</button></a>
+	<a href="/PoS/{{PoS_node.name}}/chain" target="_blank"><button>Get Blockchain</button></a>
+	</center>
+
+	<div class="row">
+			<div class="column">
+				<div class="card">
+					<h3>Purchase Smart Card</h3>
+					<a href="/PoS/{{PoS_node.name}}/purchase"><button>Purchase</button></a>
+				</div>
+			</div>
+			<div class="column">
+				<div class="card">
+					<h3>Recharge Smart Card</h3>
+					<form action="/PoS/{{PoS_node.name}}/recharge" id="textform" method="post">
+						<label for="card_no">Card Number:</label>
+						<input type="text" id="card_no" name="card_no">
+						<label for="amount">Amount:</label>
+						<input type="text" id="amount" name="amount">
+						<input type="submit" value="Recharge">
+					</form>
+				</div>
+			</div>
+	</div>
+
+{% endblock %}

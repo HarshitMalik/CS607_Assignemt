@@ -54,7 +54,7 @@ class Blockchain:
         block.nonce = 0
 
         computed_hash = block.compute_hash()
-        while not computed_hash.startswith('0' * Blockchain.difficulty):
+        while not computed_hash.startswith('0' * Blockchain.PoW_difficulty):
             block.nonce += 1
             computed_hash = block.compute_hash()
 
@@ -65,7 +65,7 @@ class Blockchain:
 
     @classmethod
     def is_valid_proof(cls, block, block_hash):
-        return (block_hash.startswith('0' * Blockchain.difficulty) and block_hash == block.compute_hash())
+        return (block_hash.startswith('0' * Blockchain.PoW_difficulty) and block_hash == block.compute_hash())
 
     @classmethod
     def check_chain_validity(cls, chain):
@@ -112,21 +112,52 @@ peers = set()
 PoS_name = "PoS1"
 PoS_type = "Cash_Card"
 
-
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     tx_data = request.get_json()
-    required_fields = ["tx_type", "user", "amount"]
 
-    for field in required_fields:
-        if not tx_data.get(field):
-            return "Invalid transaction data", 404
+    valid_card_no = True
+    if tx_data["type"] != 'purchase':
+        valid_card_no = False
+        for block in blockchain.chain:
+            txs = block.transactions
+            for tx in txs:
+                if tx_data["card"] == tx["card"]:
+                    valid_card_no = True
+                    break
+
+    if not valid_card_no:
+        tx_data["amount"] = "-1";
+        return "Invalid card number " + tx_data["card"], 404
 
     tx_data["timestamp"] = time.time()
 
-    blockchain.add_new_transaction(tx_data)
+    if tx_data["type"] == 'balance':
+        amount = -1
+        for block in blockchain.chain:
+            txs = block.transactions
+            for tx in txs:
+                if(tx["card"] == tx_data["card"]):
+                    if tx["type"] == "purchase":
+                        amount = 0
+                    elif tx["type"] == "recharge":
+                        amount += int(tx["amount"])
+                    elif tx["type"] == "buy":
+                        amount -= int(tx["amount"])
+        tx_data["amount"] = str(amount)
+        return json.dumps(tx_data)
 
-    return "Success", 201
+    if tx_data["type"] == 'purchase':
+        card_no = 0
+        for block in blockchain.chain:
+            txs = block.transactions
+            for tx in txs:
+                if card_no < int(tx["card"]):
+                    card_no = int(tx["card"]) + 1
+        tx_data["card"] = str(card_no)
+
+    blockchain.add_new_transaction(tx_data)
+    return json.dumps(tx_data)
 
 
 @app.route('/chain', methods=['GET'])
@@ -222,7 +253,7 @@ def verify_and_add_block():
 @app.route('/pending_tx', methods=['GET'])
 def get_pending_tx():
     return json.dumps(blockchain.unconfirmed_transactions)
-    
+
 @app.route('/pos_name', methods=['GET'])
 def get_pos_name():
     return json.dumps(PoS_name)
@@ -261,19 +292,20 @@ def announce_new_block(block):
 def main():
   global PoS_name
   global PoS_type
-  parser = argparse.ArgumentParser() 
+  parser = argparse.ArgumentParser()
   parser.add_argument("-p", "--port", help = "Port number")
   parser.add_argument("-n", "--name", help = "PoS name")
   parser.add_argument("-t", "--type", help = "PoS type: c-Cash_Card or r-Retail")
-   
+
   args = parser.parse_args()
-  
+
   PoS_name = args.name
   if(args.type == 'c'):
     PoS_type = 'Cash_Card'
   else:
     PoS_type = 'Retail'
-  app.run(debug=True, port=args.port)
-   
+  app.run(debug=False, port=args.port)
+  return 0
+
 if __name__ == "__main__":
   main()

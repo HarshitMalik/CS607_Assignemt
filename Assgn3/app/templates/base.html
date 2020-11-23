@@ -1,20 +1,9 @@
 <html>
   <head>
-    <title>{{ title }}</title>
+    <title>SpiritChain</title>
   </head>
   <body>
-    <div><a href="/index">Home</a></div>
-    <center><h1>{{ title }}</h1></center>
-    <hr>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul>
-    {% for message in messages %}
-        <li>{{ message }} </li>
-    {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
+    <center><h1>Blockchain Application</h1></center>
     {% block content %}{% endblock %}
   </body>
 </html>
